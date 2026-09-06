@@ -1,0 +1,16 @@
+{
+  "name": "ignia-threejs",
+  "version": "0.4.0",
+  "private": false,
+  "description": "Reactive volumetric fire and smoke for Three.js / WebGL2.",
+  "license": "GPL-2.0-only",
+  "scripts": {
+    "start": "python tools/serve.py",
+    "build": "node tools/build.cjs",
+    "check": "node --check src/presets.js && node --check src/presets-data.js && node --check src/presets-runtime.js && node --check src/controls.js && node --check src/studio.js && node --check src/detail.js && node --check src/detail-core.js && node --check src/engine.js && node --check src/engine-gpu.js && node --check src/engine-flow-core.js && node --check src/engine-shaders-material.js && node --check src/engine-shaders-render.js && node --check src/engine-renderer.js && node --check src/engine-main.js",
+    "postinstall": "node tools/vendor-three.cjs"
+  },
+  "dependencies": {
+    "three": "0.180.0"
+  }
+}

@@ -1,0 +1,7 @@
+node_modules/
+__pycache__/
+*.pyc
+videos/
+renders/catalogue_*.png
+validation/pyre4_catalogue_*.json
+.DS_Store
