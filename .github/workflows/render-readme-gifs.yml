@@ -1,0 +1,72 @@
+name: Render IGNIA README GIFs
+
+on:
+  push:
+    branches: [gif-fix]
+    paths:
+      - '.github/workflows/render-readme-gifs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gif-fix
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install IGNIA and browser tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Start local IGNIA server
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 > /tmp/ignia-http.log 2>&1 &
+          echo $! > /tmp/ignia-http.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:8000/index.html >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/ignia-http.log
+          exit 1
+
+      - name: Render GIFs from the actual simulation
+        run: node tools/render-readme-gifs.mjs
+
+      - name: Validate generated animations
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in docs/media/ignia-overview.gif docs/media/ignia-combustors.gif docs/media/ignia-vortices.gif docs/media/ignia-transients.gif; do
+            test -s "$f"
+            test "$(stat -c %s "$f")" -gt 20000
+            ffprobe -v error -select_streams v:0 -show_entries stream=width,height,nb_frames -of default=nw=1 "$f"
+          done
+
+      - name: Commit rendered media and remove one-shot tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/media/ignia-overview.gif docs/media/ignia-combustors.gif docs/media/ignia-vortices.gif docs/media/ignia-transients.gif
+          git rm .github/workflows/render-readme-gifs.yml tools/render-readme-gifs.mjs
+          git commit -m 'Replace README placeholders with rendered IGNIA GIFs'
+          git push origin HEAD:gif-fix
