@@ -1,0 +1,85 @@
+name: Expand IGNIA source
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  expand:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Expand source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f bootstrap/part00.b64
+          test -f bootstrap/remaining.b64
+          cat bootstrap/part00.b64 bootstrap/remaining.b64 | base64 -d > /tmp/ignia.tar.gz
+          tar -xzf /tmp/ignia.tar.gz
+          rm -rf bootstrap
+          chmod +x tools/render_readme_gifs.sh tools/run_matrix_v4.sh
+          python - <<'PY'
+          import json
+          p='package.json'
+          d=json.load(open(p))
+          d['scripts']['test:browser']='python tools/qa_three_v4.py'
+          with open(p,'w') as f:
+              json.dump(d,f,indent=2)
+              f.write('\n')
+          PY
+
+      - name: Install dependencies and validate source
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install
+          npm run check
+          npm run build
+          cp PYRE_IV_Studio.html IGNIA_Studio.html
+          python -m py_compile tools/*.py
+
+      - name: Install headless renderer dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg libegl1-mesa-dev libgles2-mesa-dev mesa-utils
+          python -m pip install -r requirements.txt
+
+      - name: Generate README GIFs from IGNIA simulation
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tools/render_readme_gifs.sh
+          rm -rf videos renders
+          find validation -maxdepth 1 -type f -name 'pyre4_catalogue_*' -delete || true
+
+      - name: Commit expanded repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          rm -f .github/workflows/bootstrap-ignia.yml
+          git add -A
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'Import IGNIA volumetric fire simulator'
+          git push origin master
