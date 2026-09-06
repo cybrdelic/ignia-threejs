@@ -1,10 +1,10 @@
 # IGNIA — reactive volumetric fire for Three.js / WebGL2
 
-<p align="center"><img src="docs/media/ignia-overview-v6.gif" width="640" alt="IGNIA volumetric fire"></p>
+<p align="center"><img src="docs/media/ignia-overview-v7.gif" width="640" alt="IGNIA volumetric fire"></p>
 
 IGNIA is a code-rendered volumetric fire and smoke simulator built around a pressure-projected velocity field, transported reactive scalars, refined subgrid chemistry fields, volumetric extinction/emission, solid boundaries, and reproducible numerical checks. The flames are simulated fields — not sprites, prerecorded flipbooks, or generated imagery.
 
-<table><tr><td><img src="docs/media/ignia-combustors-v6.gif" alt="Combustors"></td><td><img src="docs/media/ignia-vortices-v6.gif" alt="Vortices"></td></tr><tr><td><img src="docs/media/ignia-transients-v6.gif" alt="Transients"></td><td><b>31 presets</b><br>candles · stove burners · jets · wind · tornado · fireball · mushroom cloud · smoke · boundaries · artistic emission palettes</td></tr></table>
+<table><tr><td><img src="docs/media/ignia-combustors-v7.gif" alt="Combustors"></td><td><img src="docs/media/ignia-vortices-v7.gif" alt="Vortices"></td></tr><tr><td><img src="docs/media/ignia-transients-v7.gif" alt="Transients"></td><td><b>31 presets</b><br>candles · stove burners · jets · wind · tornado · fireball · mushroom cloud · smoke · boundaries · artistic emission palettes</td></tr></table>
 
 ## Run
 
