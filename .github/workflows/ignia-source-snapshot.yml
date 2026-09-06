@@ -1,0 +1,25 @@
+name: IGNIA source snapshot
+on:
+  push:
+    branches: [ignia-render-upgrade-20260906]
+    paths: [.github/workflows/ignia-source-snapshot.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package exact tracked source
+        run: |
+          git archive --format=zip HEAD -o /tmp/ignia-source.zip
+          git rev-parse HEAD > /tmp/ignia-source-commit.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ignia-source-snapshot
+          path: |
+            /tmp/ignia-source.zip
+            /tmp/ignia-source-commit.txt
+          retention-days: 3
