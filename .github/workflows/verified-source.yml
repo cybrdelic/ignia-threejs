@@ -1,0 +1,31 @@
+name: IGNIA verified source snapshot
+on:
+  push:
+    branches: [ignia-verified-upgrade-20260906]
+    paths: ['.github/workflows/verified-source.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts && node tools/vendor-three.cjs
+      - run: npm run check
+      - name: Package exact checked-out source
+        if: always()
+        run: |
+          mkdir -p /tmp/ignia-source
+          git rev-parse HEAD > /tmp/ignia-source/COMMIT.txt
+          tar --exclude=.git --exclude=node_modules -czf /tmp/ignia-source/source.tar.gz .
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ignia-checked-source
+          path: /tmp/ignia-source/
+          retention-days: 3
