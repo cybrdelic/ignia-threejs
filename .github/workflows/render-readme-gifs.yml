@@ -48,7 +48,19 @@ jobs:
           exit 1
 
       - name: Render GIFs from the actual simulation
-        run: node tools/render-readme-gifs.mjs
+        shell: bash
+        run: |
+          set +e
+          node tools/render-readme-gifs.mjs 2>&1 | tee gif-render.log
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add gif-render.log
+            git commit -m 'Capture IGNIA GIF renderer failure log' || true
+            git push origin HEAD:gif-fix || true
+            exit "$code"
+          fi
 
       - name: Validate generated animations
         shell: bash
@@ -66,6 +78,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          rm -f gif-render.log
           git add docs/media/ignia-overview.gif docs/media/ignia-combustors.gif docs/media/ignia-vortices.gif docs/media/ignia-transients.gif
           git rm .github/workflows/render-readme-gifs.yml tools/render-readme-gifs.mjs
           git commit -m 'Replace README placeholders with rendered IGNIA GIFs'
