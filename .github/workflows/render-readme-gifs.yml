@@ -5,6 +5,7 @@ on:
     branches: [gif-fix]
     paths:
       - '.github/workflows/render-readme-gifs.yml'
+      - 'tools/render-readme-gifs.mjs'
   workflow_dispatch:
 
 permissions:
@@ -66,9 +67,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for f in docs/media/ignia-overview.gif docs/media/ignia-combustors.gif docs/media/ignia-vortices.gif docs/media/ignia-transients.gif; do
+          for f in docs/media/ignia-overview-v8.gif docs/media/ignia-combustors-v8.gif docs/media/ignia-vortices-v8.gif docs/media/ignia-transients-v8.gif; do
             test -s "$f"
-            test "$(stat -c %s "$f")" -gt 20000
+            test "$(stat -c %s "$f")" -gt 50000
             ffprobe -v error -select_streams v:0 -show_entries stream=width,height,nb_frames -of default=nw=1 "$f"
           done
 
@@ -79,7 +80,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           rm -f gif-render.log
-          git add docs/media/ignia-overview.gif docs/media/ignia-combustors.gif docs/media/ignia-vortices.gif docs/media/ignia-transients.gif
+          git add docs/media/ignia-overview-v8.gif docs/media/ignia-combustors-v8.gif docs/media/ignia-vortices-v8.gif docs/media/ignia-transients-v8.gif
           git rm .github/workflows/render-readme-gifs.yml tools/render-readme-gifs.mjs
-          git commit -m 'Replace README placeholders with rendered IGNIA GIFs'
+          git commit -m 'Add high-quality rendered IGNIA README GIFs'
           git push origin HEAD:gif-fix
