@@ -1,0 +1,40 @@
+name: Native OpenVDB export validation
+on:
+  push:
+    branches: [ignia-next-20260906]
+    paths: ['.github/workflows/check-vdb.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  vdb:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EGL_PLATFORM: surfaceless
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      LP_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run the native OpenVDB writer and reader
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-openvdb python3-numpy python3-pil libegl1 libgl1 libgl1-mesa-dri fonts-dejavu-core
+          mkdir -p validation renders
+          npm run export-shaders
+          npm run export-detail
+          npm run export-diagnostics
+          /usr/bin/python3 tools/test_vdb.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-vdb-validation
+          path: |
+            validation/IGNIA_Simulated_State.pyre.gz
+            validation/IGNIA_Simulated_Fields.vdb
+            validation/IGNIA_Simulated_Fields.json
+            validation/vdb_roundtrip.json
+          retention-days: 3
