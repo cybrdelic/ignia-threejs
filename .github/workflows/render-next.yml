@@ -1,8 +1,5 @@
 name: IGNIA 0.5 full native-HD recordings
 on:
-  push:
-    branches: [ignia-next-20260906]
-    paths: ['.github/workflows/render-next.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -64,6 +61,7 @@ jobs:
           GRID: ${{ matrix.grid }}
           CINEMA: ${{ matrix.cinema }}
         run: |
+          set -o pipefail
           extra=()
           if [ "$CINEMA" = true ]; then extra=(--cinema --duration 6 --ray-steps 320); fi
           python tools/capture_delivery.py --mode "$MODE" --only "$SCENE" --grid "$GRID" --refinement 3 --destination delivery/scene "${extra[@]}" 2>&1 | tee capture.log
@@ -82,7 +80,6 @@ jobs:
       EGL_PLATFORM: surfaceless
       LIBGL_ALWAYS_SOFTWARE: '1'
       LP_NUM_THREADS: '2'
-      OPENCV_IO_ENABLE_OPENEXR: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -94,7 +91,7 @@ jobs:
       - run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq libegl1 libgl1 libgl1-mesa-dri fonts-dejavu-core
-          python -m pip install --quiet numpy pillow opencv-python-headless
+          python -m pip install --quiet numpy pillow OpenEXR
           mkdir -p validation renders
           npm run export-shaders
           npm run export-detail
@@ -102,15 +99,7 @@ jobs:
           python tools/test_lab.py
           python tools/test_optical_segment.py
           python tools/test_embers.py
-          node tools/test_exr.cjs
-          python - <<'PY'
-          import cv2,numpy as np,json
-          from pathlib import Path
-          p=Path('validation');observed=cv2.imread(str(p/'exr_fixture.exr'),cv2.IMREAD_UNCHANGED)
-          expected=np.fromfile(p/'exr_fixture.rgba32f',np.float32).reshape(4,8,4)[...,[2,1,0,3]]
-          error=float(np.abs(observed-expected).max());assert error==0
-          (p/'exr_roundtrip.json').write_text(json.dumps({'pass':True,'independent_decoder':'OpenCV/OpenEXR','maximum_absolute_error':error,'negative_values_preserved':bool(observed.min()<0),'hdr_values_preserved':bool(observed.max()>1)}))
-          PY
+          python tools/test_exr_roundtrip.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -119,7 +108,7 @@ jobs:
           retention-days: 3
   browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     env:
       EGL_PLATFORM: surfaceless
       LIBGL_ALWAYS_SOFTWARE: '1'
@@ -136,7 +125,10 @@ jobs:
           python -m playwright install --with-deps chromium
           echo "IGNIA_CHROMIUM=$(python -c 'from playwright.sync_api import sync_playwright;p=sync_playwright().start();print(p.chromium.executable_path);p.stop()')" >> "$GITHUB_ENV"
           mkdir -p validation
-      - run: python tools/browser_delivery.py 2>&1 | tee browser-capture.log
+      - run: |
+          set -o pipefail
+          python tools/browser_delivery.py 2>&1 | tee browser-capture.log
+          python tools/test_browser_state.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -144,6 +136,7 @@ jobs:
           path: |
             delivery/browser/
             validation/browser_delivery.json
+            validation/browser_state_roundtrip.json
             browser-capture.log
           retention-days: 3
   collect:
@@ -163,12 +156,11 @@ jobs:
           NUMERICS: ${{ needs.numerics.result }}
           BROWSER: ${{ needs.browser.result }}
         run: |
-          git archive --format=tar.gz HEAD src tools vendor README.md UPGRADE.md LICENSE index.html package.json package-lock.json requirements.txt presets.json SOURCE_SHA256.json > /tmp/ignia-next-results/source.tar.gz
+          git archive --format=tar.gz HEAD src tools vendor README.md UPGRADE.md EXPORTS.md LICENSE index.html package.json package-lock.json requirements.txt presets.json SOURCE_SHA256.json > /tmp/ignia-next-results/source.tar.gz
           python - <<'PY'
           import json,os
           from pathlib import Path
-          root=Path('/tmp/ignia-next-results')
-          rows=[]
+          root=Path('/tmp/ignia-next-results');rows=[]
           for p in root.rglob('manifest.json'):
               m=json.loads(p.read_text());rows.append({'path':str(p.relative_to(root)),'status':m.get('status'),'scenes':[x['id'] for x in m.get('scenes',[])]})
           (root/'RUN_STATUS.json').write_text(json.dumps({'source_commit':os.environ['GITHUB_SHA'],'render':os.environ['RENDER'],'numerics':os.environ['NUMERICS'],'browser':os.environ['BROWSER'],'manifests':rows},indent=2))
