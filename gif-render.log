@@ -1,11 +1,8 @@
-node:internal/modules/run_main:123
-    triggerUncaughtException(
-    ^
+file:///home/runner/work/ignia-threejs/ignia-threejs/tools/render-readme-gifs.mjs:43
+  if (i === 119) throw new Error(`IGNIA did not initialize; body=${state.body}`);
+                       ^
 
-page.waitForFunction: Timeout 120000ms exceeded.
-    at /home/runner/work/ignia-threejs/ignia-threejs/tools/render-readme-gifs.mjs:36:12 {
-  log: [],
-  name: 'TimeoutError'
-}
+Error: IGNIA did not initialize; body=
+    at file:///home/runner/work/ignia-threejs/ignia-threejs/tools/render-readme-gifs.mjs:43:24
 
 Node.js v22.23.2
