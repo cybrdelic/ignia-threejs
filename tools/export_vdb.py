@@ -64,13 +64,14 @@ def export(snapshot,output):
         grid['creator']='IGNIA 0.5 snapshot export';grid['simulation_time']=float(meta['time']);grid['calibrated_physics']=False
         grid['units']='model velocity / world units per second' if name=='velocity' else 'normalized model field'
         if name=='temperature':grid['note']='Normalized temperature; viewer proxy 300 + 1420*T kelvin is not calibrated thermochemistry.'
-        grid.copyFromArray(np.ascontiguousarray(array,np.float32),tolerance=0.0)
+        tolerance=(0.,0.,0.) if array.ndim==4 else 0.
+        grid.copyFromArray(np.ascontiguousarray(array,np.float32),tolerance=tolerance)
         grids.append(grid);specs.append({'name':name,'shape':list(map(int,array.shape)),'voxel_size':cell.tolist(),'origin_cell_center':origin.tolist(),'active_voxels':int(grid.activeVoxelCount())})
     output.parent.mkdir(parents=True,exist_ok=True)
     vdb.write(str(output),grids=grids,metadata={'creator':'IGNIA snapshot-to-OpenVDB','simulation_time':float(meta['time']),'source_sha256':hashlib.sha256(snapshot.read_bytes()).hexdigest()})
     decoded,_=vdb.readAll(str(output));observed={g.name:g for g in decoded};checks=[]
     for spec in specs:
-        name=spec['name'];actual=np.zeros_like(arrays[name]);observed[name].copyToArray(actual);error=float(np.abs(actual-arrays[name]).max())
+        name=spec['name'];actual=np.zeros(arrays[name].shape,np.float32);observed[name].copyToArray(actual);error=float(np.abs(actual-arrays[name]).max())
         if error!=0:raise AssertionError(f'{name}: OpenVDB round-trip error {error}')
         checks.append({**spec,'maximum_absolute_error':error,'pass':True})
     report={'pass':True,'format':'OpenVDB','source_snapshot':snapshot.name,'source_snapshot_sha256':hashlib.sha256(snapshot.read_bytes()).hexdigest(),'output_sha256':hashlib.sha256(output.read_bytes()).hexdigest(),'output_bytes':output.stat().st_size,'native_library':str(getattr(vdb,'LIBRARY_VERSION','OpenVDB')),'grids':checks,'temperature_is_normalized':True,'retains_particles':False,'retains_browser_render_settings':False,'simulation_rerun':False}
