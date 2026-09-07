@@ -1,53 +1,61 @@
-# IGNIA — reactive volumetric fire for Three.js / WebGL2
+# IGNIA · reactive volume laboratory
 
-<p align="center"><img src="docs/media/baseline/catalogue/01_hearth.gif" width="640" alt="IGNIA volumetric fire"></p>
+Three.js / WebGL2 fire, smoke, and one-way coupled ember tracers. Version 0.5 adds corrected MAC velocity transport, refined RK2 scalar transport, stable optically-thin integration, cached smoke illumination, and scene-linear floating-point EXR passes.
 
-IGNIA is a code-rendered volumetric fire and smoke simulator built around a pressure-projected velocity field, transported reactive scalars, refined subgrid chemistry fields, volumetric extinction/emission, solid boundaries, and reproducible numerical checks. The flames are simulated fields — not sprites, prerecorded flipbooks, or generated imagery.
-
-<table><tr><td><img src="docs/media/baseline/catalogue/05_stove4.gif" alt="Combustors"></td><td><img src="docs/media/baseline/catalogue/20_tornado.gif" alt="Vortices"></td></tr><tr><td><img src="docs/media/baseline/catalogue/23_mushroom.gif" alt="Transients"></td><td><b>31 presets</b><br>candles · stove burners · jets · wind · tornado · fireball · mushroom cloud · smoke · boundaries · artistic emission palettes</td></tr></table>
+This is a working VFX prototype, **not demonstrated EmberGen 2.0 parity** and not calibrated combustion, nuclear-blast, or tornado physics. The velocity/pressure solve is dense and coarser than the transported reactive fields. The fine Fourier closure is a modeled subgrid velocity, not a fine-grid pressure solve.
 
 ## Run
 
-```bash
+```sh
 npm install
 npm start
 ```
 
-`npm install` vendors the pinned official Three.js r180 distribution into `vendor/`. The server prints and opens a loopback URL for `index.html`.
+Open the localhost address printed by `tools/serve.py`. A local Three.js r180 distribution is included, with its original MIT license, so this release can also start with `python tools/serve.py` without a network download. `npm run build` creates a self-contained HTML application. `window.IGNIA` is the application API; `window.PYRE` remains a compatibility alias.
 
-Build a self-contained studio page with:
+## Scene coverage
 
-```bash
+The 31 presets include wood fire; one and three candles; one burner, four burners and pan interaction; clean and sooty fuel profiles; directional, opposing, pulsed, ribbon and multi-nozzle jets; steady, gusting, oscillating, rotating and sheared wind; driven fire/smoke vortices; a finite reactive burst; buoyant mushroom-cloud VFX; a moving source; sphere/baffle boundaries; smoke without fuel; and four artistic palettes. Sources, wind, thermal/soot parameters and palettes are independent controls.
+
+The source profiles are artistic surrogates, not chemically calibrated material models. Color palettes do not change the numerical fields. The mushroom effect has no nuclear reactions, detonation, radiation or blast-wave calculation.
+
+## Rendering and export
+
+The same exported GLSL is used by the Three.js browser host and the EGL offline capture host. The volume renderer integrates three-band thermal emission, soot extinction and cached approximate single-scattered light. Depth, normal, velocity and position passes are **opacity-weighted moments**, not a hard surface or a deep EXR. The normal is the density-gradient normal. EXR outputs preserve floating-point, signed and above-one values without exposure or a display transform.
+
+The UI exports PNG stills, WebM recordings, a 16-frame RGBA flipbook, fluid/pressure/particle snapshots, and FLOAT scanline EXR passes. `IGNIA.readAOV(1..5)` reads raw linear data; `IGNIA.exportEXR(1..5)` downloads the pass. Snapshot imports enforce explicit allocation, payload-length, finite-value and decompression limits.
+
+Fine refinement is selectable at 2× or 3×, capped at 12 million transported cells. Film velocity resolution is 64×96×64; 3× refinement is 192×288×192. These are distinct from the final pixel dimensions. GPU memory and frame cost grow materially at that setting. The in-app benchmark reports actual end-to-end timings, not an assumed FPS.
+
+## Reproduce tests and video
+
+```sh
+python -m pip install -r requirements.txt
 npm run check
-npm run build
+npm run export-shaders
+npm run export-detail
+npm run export-diagnostics
+python tools/test_lab.py
+python tools/test_optical_segment.py
+python tools/test_embers.py
+node tools/test_exr.cjs
+python tools/browser_delivery.py
+python tools/capture_delivery.py --mode catalogue --grid 64 --refinement 3 --only hearth --destination delivery/hearth
+python tools/capture_delivery.py --mode verification --grid 64 --refinement 3 --only wind --destination delivery/wind
 ```
 
-That produces `IGNIA_Studio.html`.
+EGL tools require system Mesa/EGL libraries, FFmpeg and the DejaVu fonts. The browser tool requires Chromium and Python Playwright; it explicitly rejects the native WebGL fallback. Long reels use EGL; the separate browser clip records the actual Three.js canvas. All recorded moving scenes advance twice at 1/48 second per 24-fps output frame. Encoded playback FPS is not interactive GPU throughput.
 
-## Simulation
+## Published media
 
-- Pressure-projected 3D velocity / momentum field.
-- Temperature, fuel, oxygen-like concentration, soot, and instantaneous reaction fields.
-- Optional 2×/3× refined transported reactive fields while pressure remains on the base grid.
-- Buoyancy, vorticity confinement, source geometry, directional inlet velocity, wind fields, solid masks, cooling, and soot production.
-- Ray-integrated volumetric extinction and emission with cached illumination, empty-space skipping, early termination, reflections, and bloom.
-- Sphere, baffle, and stove-pan solid boundaries shared by solver and renderer.
-- 31 authored scenes spanning candles, gas burners, jets, winds, vortices, transient fireballs, mushroom-style buoyant clouds, smoke, boundaries, and optical palettes.
+[Original 43 GIFs and byte-for-byte 1080p recordings](docs/media/baseline/) · [Original gallery](docs/media/baseline/index.html) · [Original upload hashes](docs/media/baseline/publication-manifest.json).
 
-The combustion model is a graphics-oriented low-speed approximation with normalized VFX parameters, not experimentally calibrated chemistry or a shock solver. The mushroom-cloud preset is buoyant VFX, not nuclear-reaction physics. IGNIA does not claim to reproduce proprietary EmberGen internals.
+New results belong in `docs/media/next`, with a source-commit manifest. Baseline media is retained separately and must not be presented as a rerender of the new version.
 
-## Controls
+## Known boundaries
 
-Drag to orbit, scroll to dolly, Space to pause, H to hide the UI. The studio exposes fuel/source strength, wind, vorticity, refinement, exposure, collider modes, field views, and the preset library.
-
-## Baseline verification
-
-The PYRE IV baseline from which IGNIA was renamed was exercised with a 31-scene native-1080p catalogue, high-grid checkpoint renders at 64×96×64 pressure / 128×192×128 refined fields, a 14/14 compact numerical regression suite, and the pinned Three.js r180 backend in Chromium/WebGL2. Those results establish the tested source baseline rather than a universal performance claim.
+No sparse simulation domain, production node graph, animated FBX/Alembic collision import, calibrated fuel chemistry, multi-bounce volume path tracing, deep EXR, or consumer-GPU performance parity is established. Ember tracers have prescribed drag, cooling and gravity and do not feed heat, mass or momentum back into the fluid. Smooth-looking fields and numerical regression passes are not evidence of physical validation.
 
 ## License
 
-IGNIA is GPL-2.0-only, matching this repository's existing license. Three.js remains under its upstream MIT license; see `vendor/THREE-LICENSE.txt`.
-
-## Complete recorded media
-
-[All 43 GIFs and original 1080p clips](docs/media/baseline/) · [HTML scene gallery](docs/media/baseline/index.html) · [Per-file hashes and decode checks](docs/media/baseline/publication-manifest.json). These are the original rebuilt baseline recordings, not claimed EmberGen-equivalent results.
+Project distribution: **GPL-2.0-only**, preserving this repository's license. The independently licensed Three.js distribution and its MIT notice remain under `vendor/THREE-LICENSE.txt`. Earlier MIT-origin PYRE source is incorporated into this GPL-2.0 distribution; its provenance is retained in source history.

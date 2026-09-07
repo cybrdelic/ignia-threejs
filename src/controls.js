@@ -1,4 +1,4 @@
-/* PYRE IV composable source controls and validated preset round trips.
+/* PYRE III composable source controls and validated preset round trips.
  * These controls modify uniforms used by both reactive grids, never render-only
  * substitutes for flame motion. Fuel names denote uncalibrated VFX profiles.
  */
@@ -70,7 +70,8 @@
       if(!Number.isInteger(p.flow.obstacle))throw new Error('Invalid collider index');
       const factor=p.refinement;if(![1,2,3].includes(factor))throw new Error('Invalid refinement factor');
       if(!Number.isFinite(p.turbulence)||p.turbulence<0||p.turbulence>1.2)throw new Error('Invalid refinement turbulence');
-      const count=app.flow.grid.reduce((a,b)=>a*b,1)*factor**3;if(count>5e6)throw new Error('This preset needs a smaller base grid for its refinement factor');
+      const count=app.flow.grid.reduce((a,b)=>a*b,1)*factor**3;if(count>12e6)throw new Error('This preset needs a smaller base grid for its refinement factor');
+      // Validate before touching a running state.
       app.flow.pyre3=structuredClone(p.params);Object.assign(app.flow,Object.fromEntries(Object.keys(limits).map(k=>[k,p.flow[k]])));app.flow.scene=p.params.emitter===0?0:([2,11].includes(p.params.emitter)?2:1);
       app.enableDetail(factor===1?0:factor);if(app.detail)app.detail.turbulence=p.turbulence;
       app.flow.reset();app.clock=0;app.render.cacheTick=-1;

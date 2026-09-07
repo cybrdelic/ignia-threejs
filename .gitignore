@@ -1,7 +1,9 @@
 node_modules/
 __pycache__/
 *.pyc
+renders/
 videos/
-renders/catalogue_*.png
-validation/pyre4_catalogue_*.json
-.DS_Store
+delivery/
+*.log
+validation/*
+!validation/.gitkeep

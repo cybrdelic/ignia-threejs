@@ -1,0 +1,6 @@
+const fs=require('fs'),vm=require('vm'),path=require('path');
+let source=fs.readFileSync(path.join(__dirname,'../src/engine.js'),'utf8');source=source.slice(0,source.lastIndexOf('main().catch'));
+const result={};const ctx={URLSearchParams,location:{search:''},window:{},document:{querySelector:()=>null},console};vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(__dirname,"../src/presets.js"),"utf8"),ctx);
+vm.runInContext(fs.readFileSync(path.join(__dirname,'../src/embers.js'),'utf8'),ctx);
+vm.runInContext(source+`\nconst p={};const mock={program:s=>s};const flowObj={gpu:mock};ReactiveFlow.prototype.makePrograms.call(flowObj);for(const k of Object.keys(flowObj))if(k!=='gpu')p[k]=flowObj[k];p.light=lightGLSL;p.material=materialGLSL;p.occupancy=occupancyGLSL;p.render=renderGLSL;p.post=postGLSL;p.blur=blurGLSL;const emb=window.IGNIAEmberShaders(gridGLSL);p.emberInit=emb.init;p.emberStep=emb.step;p.emberVertex=emb.vertex;p.emberFragment=emb.fragment;p.vertex='#version 300 es\\nprecision highp float;out vec2 vUV;void main(){vec2 p=vec2((gl_VertexID<<1)&2,gl_VertexID&2);vUV=p;gl_Position=vec4(p*2.-1.,0.,1.);}';globalThis.EXPORTED=p;`,ctx);
+fs.writeFileSync(path.join(__dirname,'shaders.json'),JSON.stringify(ctx.EXPORTED));
