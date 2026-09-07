@@ -1,3 +1,9 @@
+[browser:error] PlaywrightError [SyntaxError]: Unexpected identifier 'direction'
+    at eval (<anonymous>)
+    at http://127.0.0.1:8000/src/presets-data.js:11:12
+    at http://127.0.0.1:8000/src/presets-data.js:12:3 {
+  log: []
+}
 file:///home/runner/work/ignia-threejs/ignia-threejs/tools/render-readme-gifs.mjs:43
   if (i === 119) throw new Error(`IGNIA did not initialize; body=${state.body}`);
                        ^
