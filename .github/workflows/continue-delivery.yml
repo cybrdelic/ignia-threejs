@@ -1,0 +1,138 @@
+name: Complete existing IGNIA verified delivery
+on:
+  push:
+    branches: [ignia-delivery-checked-20260906]
+    paths: ['.github/workflows/continue-delivery.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+  pull-requests: write
+jobs:
+  finish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EGL_PLATFORM: surfaceless
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      LP_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ignia-delivery-checked-20260906
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Wait for existing renders without starting new simulation jobs
+        run: |
+          deadline=$((SECONDS+2700))
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            status=$(gh api repos/cybrdelic/ignia-threejs/actions/runs/34069252907 --jq .status)
+            if [ "$status" = completed ]; then exit 0; fi
+            echo "Existing capture run: $status"
+            sleep 30
+          done
+          exit 1
+      - name: Download the exact existing captured fields, movies and independent format tests
+        run: |
+          mkdir -p /tmp/ignia-inputs/rendered /tmp/ignia-inputs/exr /tmp/ignia-inputs/vdb
+          gh run download 34069252907 -R cybrdelic/ignia-threejs -n IGNIA_NEXT_All_Rendered -D /tmp/ignia-inputs/rendered
+          gh run download 34069578543 -R cybrdelic/ignia-threejs -n official-exr-validation -D /tmp/ignia-inputs/exr
+          gh run download 34070680791 -R cybrdelic/ignia-threejs -n native-vdb-validation -D /tmp/ignia-inputs/vdb
+      - name: Preserve current published work before validating the final source
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin master ignia-next-20260906
+          git merge --no-edit origin/ignia-next-20260906
+          git merge --no-edit origin/master
+      - name: Install verification dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg libegl1 libgl1 libgl1-mesa-dri fonts-dejavu-core
+          python -m pip install --quiet -r requirements.txt
+          python -m pip install --quiet OpenEXR
+          python -m playwright install --with-deps chromium
+          echo "IGNIA_CHROMIUM=$(python -c 'from playwright.sync_api import sync_playwright;p=sync_playwright().start();print(p.chromium.executable_path);p.stop()')" >> "$GITHUB_ENV"
+          mkdir -p validation renders /tmp/ignia-delivery
+          npm install --ignore-scripts
+          npm run check
+          npm run export-shaders
+          npm run export-detail
+          npm run export-diagnostics
+          python -m compileall -q tools
+      - name: Recheck checkpoint replay, EXR values and preserved baseline publication
+        run: |
+          python tools/test_browser_state.py
+          python tools/test_exr_roundtrip.py
+          mkdir -p /tmp/ignia-inputs/final-browser
+          cp validation/browser_state_roundtrip.json /tmp/ignia-inputs/final-browser/
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          base=Path('docs/media/baseline');m=json.loads((base/'publication-manifest.json').read_text())
+          assert m['original_video_count']==43 and m['gif_count']==43
+          for e in m['files']:
+              assert hashlib.sha256((base/e['video']).read_bytes()).hexdigest()==e['video_sha256']
+              assert hashlib.sha256((base/e['gif']).read_bytes()).hexdigest()==e['gif_sha256']
+          print('All 43 original videos and 43 GIFs remain intact.')
+          PY
+      - name: Assemble only the new recordings and finalize checked exports
+        run: |
+          python tools/build_reels.py /tmp/ignia-inputs docs/media/next
+          rm -f .github/workflows/import-next-source.yml .github/workflows/publish-baseline-media.yml .github/workflows/verified-source.yml
+          python tools/finalize_release.py /tmp/ignia-inputs docs/media/next /tmp/ignia-delivery
+          python - <<'PY'
+          import json,hashlib,zipfile
+          from pathlib import Path
+          with zipfile.ZipFile('/tmp/ignia-delivery/IGNIA_Next_Source.zip') as z:
+              for name,digest in json.loads(z.read('SOURCE_SHA256.json')).items():
+                  assert hashlib.sha256(z.read(name)).hexdigest()==digest,name
+          report=json.loads(Path('docs/media/next/capture-report.json').read_text())
+          assert report['new_scene_count']==44 and len(report['movies'])==13
+          assert all(x['decode_check']=='passed' for x in report['movies'])
+          assert not report['old_movies_used_as_render_inputs']
+          print('Complete delivery checks passed: 44 new clips, 13 films, exact source manifest.')
+          PY
+      - name: Publish without force-pushing or overwriting concurrent master changes
+        run: |
+          git add -A .github/workflows docs/media/next README.md SOURCE_SHA256.json package-lock.json tools/shaders.json tools/detail-shaders.json tools/diagnostics-shaders.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Finalize verified IGNIA 0.5 source, 44 new clips and native EXR/OpenVDB proofs'
+          fi
+          git fetch origin master
+          git merge --no-edit origin/master
+          if git push origin HEAD:master; then
+            published=master
+          else
+            git push origin HEAD:ignia-delivery-checked-20260906
+            published=ignia-delivery-checked-20260906
+            gh pr create --repo cybrdelic/ignia-threejs --base master --head ignia-delivery-checked-20260906 --title 'Verified IGNIA 0.5 source and complete new recording delivery' --body 'Preserves all 43 baseline GIFs and videos; publishes the validated upgraded runtime, 44 new 1080p clips, 13 assembled films, and numerical/EXR/OpenVDB evidence. No EmberGen parity or real-time claim.' || true
+          fi
+          git rev-parse HEAD > /tmp/ignia-delivery/GITHUB_COMMIT.txt
+          PUBLISHED="$published" python - <<'PY'
+          import json,os,subprocess
+          from pathlib import Path
+          p=Path('/tmp/ignia-delivery');commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          (p/'publication.json').write_text(json.dumps({'repository':'cybrdelic/ignia-threejs','branch':os.environ['PUBLISHED'],'commit':commit,'baseline_gifs':43,'baseline_videos':43,'new_scene_clips':44,'new_assembled_films':13,'all_delivery_gates_passed':True},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: IGNIA_Completed_Delivery
+          path: /tmp/ignia-delivery/
+          retention-days: 7
+          compression-level: 0
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ignia-finish-diagnostics
+          path: |
+            validation/browser_state_roundtrip.json
+            docs/media/next/capture-report.json
+          retention-days: 3
