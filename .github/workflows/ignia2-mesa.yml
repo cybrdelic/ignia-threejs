@@ -1,0 +1,42 @@
+name: IGNIA II software Vulkan reference
+on:
+  push:
+    branches: [ignia2-webgpu-20260907]
+    paths: ['.github/workflows/ignia2-mesa.yml']
+permissions:
+  contents: read
+jobs:
+  reference:
+    runs-on: ubuntu-24.04
+    container: debian:trixie
+    timeout-minutes: 15
+    steps:
+      - name: Install reference driver and export libraries
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq mesa-vulkan-drivers libvulkan1 vulkan-tools libopenvdb-dev libtbb-dev g++ python3
+          mkdir -p /tmp/ignia-mesa/lib /tmp/ignia-mesa/include /tmp/ignia-mesa/icd
+          cp -L /usr/lib/x86_64-linux-gnu/libvulkan_lvp.so /usr/lib/x86_64-linux-gnu/libvulkan.so.1 /usr/lib/x86_64-linux-gnu/libopenvdb.so* /tmp/ignia-mesa/lib/
+          python3 - <<'PY'
+          import subprocess,pathlib,re,shutil
+          dest=pathlib.Path('/tmp/ignia-mesa/lib');queue=list(dest.glob('*.so*'));seen=set()
+          while queue:
+              p=queue.pop()
+              if p.name in seen:continue
+              seen.add(p.name)
+              for match in re.finditer(r'=> (/\S+)',subprocess.check_output(['ldd',str(p)],text=True)):
+                  src=pathlib.Path(match.group(1))
+                  if src.name.startswith(('libc.so','libm.so','libpthread.so','libdl.so','librt.so','ld-linux')):continue
+                  target=dest/src.name
+                  if not target.exists():shutil.copyfile(src,target);queue.append(target)
+          PY
+          cp -a /usr/include/openvdb /usr/include/oneapi /usr/include/tbb /usr/include/Imath /tmp/ignia-mesa/include/
+          cp -L /usr/lib/x86_64-linux-gnu/libtbb.so /usr/lib/x86_64-linux-gnu/libImath*.so /usr/lib/x86_64-linux-gnu/libboost_iostreams.so /tmp/ignia-mesa/lib/
+          cp /usr/share/vulkan/icd.d/lvp_icd*.json /tmp/ignia-mesa/icd/
+          dpkg-query -W mesa-vulkan-drivers libvulkan1 libopenvdb-dev libtbb-dev > /tmp/ignia-mesa/VERSIONS.txt
+          tar -C /tmp/ignia-mesa -czf /tmp/ignia2-mesa.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ignia2-mesa-reference
+          path: /tmp/ignia2-mesa.tar.gz
+          retention-days: 7
