@@ -1,0 +1,16 @@
+[browser:error] PlaywrightError [InvalidCharacterError]: Failed to execute 'atob' on 'Window': The string to be decoded is not correctly encoded.
+    at http://127.0.0.1:8000/src/presets.js:11:13
+    at http://127.0.0.1:8000/src/presets.js:12:3 {
+  log: []
+}
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+page.waitForFunction: Timeout 120000ms exceeded.
+    at /home/runner/work/ignia-threejs/ignia-threejs/tools/render-readme-gifs.mjs:33:12 {
+  log: [],
+  name: 'TimeoutError'
+}
+
+Node.js v22.23.2
