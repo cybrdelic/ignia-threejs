@@ -2,7 +2,7 @@ name: Native OpenVDB export validation
 on:
   push:
     branches: [ignia-next-20260906]
-    paths: ['.github/workflows/check-vdb.yml']
+    paths: ['.github/workflows/check-vdb.yml', 'tools/export_vdb.py', 'tools/test_vdb.py']
   workflow_dispatch:
 permissions:
   contents: read
