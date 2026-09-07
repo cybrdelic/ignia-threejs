@@ -1,0 +1,156 @@
+{
+  "pass": true,
+  "backend": "Three.js r180",
+  "comparison": "Direct bitwise comparison of every float32 readback word; not checksum-only",
+  "includes_pressure": true,
+  "includes_refined_fields": true,
+  "includes_gpu_particles": true,
+  "initial": {
+    "time": 1.499999999999999,
+    "grid": [
+      40,
+      64,
+      40
+    ],
+    "detail": [
+      80,
+      128,
+      80
+    ],
+    "fields": {
+      "velocity": 409600,
+      "species": 409600,
+      "pressure": 409600,
+      "refinedVelocity": 3276800,
+      "refinedSpecies": 3276800,
+      "emberPosition": 8192,
+      "emberVelocity": 8192
+    },
+    "glError": 0
+  },
+  "expected_continuation": {
+    "time": 1.666666666666665,
+    "grid": [
+      40,
+      64,
+      40
+    ],
+    "detail": [
+      80,
+      128,
+      80
+    ],
+    "fields": {
+      "velocity": 409600,
+      "species": 409600,
+      "pressure": 409600,
+      "refinedVelocity": 3276800,
+      "refinedSpecies": 3276800,
+      "emberPosition": 8192,
+      "emberVelocity": 8192
+    },
+    "glError": 0
+  },
+  "restoration": {
+    "pass": true,
+    "checks": {
+      "velocity": {
+        "compared_float32_words": 409600,
+        "bitwise_mismatches": 0,
+        "maximum_absolute_error": 0,
+        "pass": true
+      },
+      "species": {
+        "compared_float32_words": 409600,
+        "bitwise_mismatches": 0,
+        "maximum_absolute_error": 0,
+        "pass": true
+      },
+      "pressure": {
+        "compared_float32_words": 409600,
+        "bitwise_mismatches": 0,
+        "maximum_absolute_error": 0,
+        "pass": true
+      },
+      "refinedVelocity": {
+        "compared_float32_words": 3276800,
+        "bitwise_mismatches": 0,
+        "maximum_absolute_error": 0,
+        "pass": true
+      },
+      "refinedSpecies": {
+        "compared_float32_words": 3276800,
+        "bitwise_mismatches": 0,
+        "maximum_absolute_error": 0,
+        "pass": true
+      },
+      "emberPosition": {
+        "compared_float32_words": 8192,
+        "bitwise_mismatches": 0,
+        "maximum_absolute_error": 0,
+        "pass": true
+      },
+      "emberVelocity": {
+        "compared_float32_words": 8192,
+        "bitwise_mismatches": 0,
+        "maximum_absolute_error": 0,
+        "pass": true
+      }
+    },
+    "metadata_equal": true,
+    "gl_error": 0,
+    "time": 1.499999999999999
+  },
+  "continuation": {
+    "pass": true,
+    "checks": {
+      "velocity": {
+        "compared_float32_words": 409600,
+        "bitwise_mismatches": 0,
+        "maximum_absolute_error": 0,
+        "pass": true
+      },
+      "species": {
+        "compared_float32_words": 409600,
+        "bitwise_mismatches": 0,
+        "maximum_absolute_error": 0,
+        "pass": true
+      },
+      "pressure": {
+        "compared_float32_words": 409600,
+        "bitwise_mismatches": 0,
+        "maximum_absolute_error": 0,
+        "pass": true
+      },
+      "refinedVelocity": {
+        "compared_float32_words": 3276800,
+        "bitwise_mismatches": 0,
+        "maximum_absolute_error": 0,
+        "pass": true
+      },
+      "refinedSpecies": {
+        "compared_float32_words": 3276800,
+        "bitwise_mismatches": 0,
+        "maximum_absolute_error": 0,
+        "pass": true
+      },
+      "emberPosition": {
+        "compared_float32_words": 8192,
+        "bitwise_mismatches": 0,
+        "maximum_absolute_error": 0,
+        "pass": true
+      },
+      "emberVelocity": {
+        "compared_float32_words": 8192,
+        "bitwise_mismatches": 0,
+        "maximum_absolute_error": 0,
+        "pass": true
+      }
+    },
+    "metadata_equal": true,
+    "gl_error": 0,
+    "time": 1.666666666666665
+  },
+  "snapshot_sha256": "5bec3ea5ab5ff9e329a9f58cd11f7a26b30bbe3cf028c447a503ff1d524103e5",
+  "snapshot_bytes": 8546576
+}

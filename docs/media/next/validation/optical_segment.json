@@ -1,0 +1,178 @@
+{
+  "scope": "Execute the current renderer's integration segment against a homogeneous slab.\n\nThis isolates the optical segment arithmetic copied verbatim from the shipped\nGLSL. It does not test scattering, reconstruction, jitter, empty-space traversal,\nor calibrated flame appearance. Half-float readback tolerance is explicit.\n",
+  "segment_sha256": "8300846ef37c3689a0fc1311690cd20167b48fbabe683d1a716d33ff52158c1d",
+  "segment": "float segmentLength=min(ds,end-distance);float tau=max(0.,s.a*segmentLength);\n  float a=tau<.02?tau*(1.-tau*(.5-tau*(1./6.-tau/24.))):1.-exp(-tau);\n  float integrated=tau<.02?segmentLength*(1.-tau*(.5-tau*(1./6.-tau/24.))):a/max(s.a,1e-20);\n  col+=tr*s.rgb*integrated;tr*=1.-a;distance+=ds;",
+  "backend": "llvmpipe (LLVM 20.1.2, 256 bits)",
+  "tests": [
+    {
+      "extinction": 0.0,
+      "length": 1.0,
+      "maximum_segments": 1,
+      "step_length": 1.0,
+      "observed": [
+        1.0,
+        0.39990234375,
+        0.199951171875,
+        1.0
+      ],
+      "analytic": [
+        1.0,
+        0.4,
+        0.2,
+        1.0
+      ],
+      "maximum_absolute_error": 9.76562500000222e-05,
+      "acceptance_absolute_tolerance": 0.001,
+      "pass": true
+    },
+    {
+      "extinction": 0.0,
+      "length": 2.33,
+      "maximum_segments": 23,
+      "step_length": 0.10296067167476801,
+      "observed": [
+        2.328125,
+        0.931640625,
+        0.4658203125,
+        1.0
+      ],
+      "analytic": [
+        2.33,
+        0.932,
+        0.466,
+        1.0
+      ],
+      "maximum_absolute_error": 0.001875000000000071,
+      "acceptance_absolute_tolerance": 0.00233,
+      "pass": true
+    },
+    {
+      "extinction": 1e-08,
+      "length": 1.0,
+      "maximum_segments": 13,
+      "step_length": 0.0791765637371338,
+      "observed": [
+        1.0,
+        0.39990234375,
+        0.199951171875,
+        1.0
+      ],
+      "analytic": [
+        0.999999995,
+        0.399999998,
+        0.199999999,
+        0.9999999900000001
+      ],
+      "maximum_absolute_error": 9.765425000002326e-05,
+      "acceptance_absolute_tolerance": 0.001,
+      "pass": true
+    },
+    {
+      "extinction": 1e-05,
+      "length": 4.0,
+      "maximum_segments": 208,
+      "step_length": 0.019265038770890527,
+      "observed": [
+        3.998046875,
+        1.599609375,
+        0.7998046875,
+        0.99951171875
+      ],
+      "analytic": [
+        3.999920001066656,
+        1.5999680004266625,
+        0.7999840002133313,
+        0.9999600007999894
+      ],
+      "maximum_absolute_error": 0.0018731260666560168,
+      "acceptance_absolute_tolerance": 0.003999920001066656,
+      "pass": true
+    },
+    {
+      "extinction": 0.0001,
+      "length": 1.0,
+      "maximum_segments": 19,
+      "step_length": 0.05367686527106817,
+      "observed": [
+        0.99951171875,
+        0.39990234375,
+        0.199951171875,
+        0.99951171875
+      ],
+      "analytic": [
+        0.9999500016666251,
+        0.39998000066665007,
+        0.19999000033332504,
+        0.9999000049998333
+      ],
+      "maximum_absolute_error": 0.0004382829166250657,
+      "acceptance_absolute_tolerance": 0.001,
+      "pass": true
+    },
+    {
+      "extinction": 0.2,
+      "length": 1.0,
+      "maximum_segments": 13,
+      "step_length": 0.0791765637371338,
+      "observed": [
+        0.90625,
+        0.3623046875,
+        0.18115234375,
+        0.818359375
+      ],
+      "analytic": [
+        0.9063462346100907,
+        0.3625384938440363,
+        0.18126924692201815,
+        0.8187307530779818
+      ],
+      "maximum_absolute_error": 0.000371378077981821,
+      "acceptance_absolute_tolerance": 0.001,
+      "pass": true
+    },
+    {
+      "extinction": 1.0,
+      "length": 2.0,
+      "maximum_segments": 97,
+      "step_length": 0.020697505950532963,
+      "observed": [
+        0.8642578125,
+        0.345703125,
+        0.1728515625,
+        0.13525390625
+      ],
+      "analytic": [
+        0.8646647167633873,
+        0.34586588670535495,
+        0.17293294335267748,
+        0.1353352832366127
+      ],
+      "maximum_absolute_error": 0.0004069042633872977,
+      "acceptance_absolute_tolerance": 0.001,
+      "pass": true
+    },
+    {
+      "extinction": 12.0,
+      "length": 0.3,
+      "maximum_segments": 128,
+      "step_length": 0.0023505445428190865,
+      "observed": [
+        0.0810546875,
+        0.03240966796875,
+        0.016204833984375,
+        0.027313232421875
+      ],
+      "analytic": [
+        0.08105635646272562,
+        0.032422542585090246,
+        0.016211271292545123,
+        0.02732372244729257
+      ],
+      "maximum_absolute_error": 1.2874616340245726e-05,
+      "acceptance_absolute_tolerance": 0.001,
+      "pass": true
+    }
+  ],
+  "all_passed": true,
+  "readback_format": "RGBA16F converted to float32"
+}

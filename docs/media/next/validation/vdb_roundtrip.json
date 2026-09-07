@@ -1,0 +1,176 @@
+{
+  "pass": true,
+  "format": "OpenVDB",
+  "source_snapshot": "IGNIA_Simulated_State.pyre.gz",
+  "source_snapshot_sha256": "218a5d5343d2fb659f35b5bb01e87d24e18e41e08d5aff95f9d11d8c5bedf49e",
+  "output_sha256": "d85a3f5536005013cc794da9e6c3a1eca623523298378f2222cca7b1e46de4a2",
+  "output_bytes": 9014008,
+  "native_library": "(10, 0, 1)",
+  "grids": [
+    {
+      "name": "pressure",
+      "shape": [
+        40,
+        64,
+        40
+      ],
+      "voxel_size": [
+        0.08,
+        0.075,
+        0.08
+      ],
+      "origin_cell_center": [
+        -1.56,
+        0.0375,
+        -1.56
+      ],
+      "active_voxels": 90970,
+      "maximum_absolute_error": 0.0,
+      "pass": true
+    },
+    {
+      "name": "temperature",
+      "shape": [
+        80,
+        128,
+        80
+      ],
+      "voxel_size": [
+        0.04,
+        0.0375,
+        0.04
+      ],
+      "origin_cell_center": [
+        -1.58,
+        0.01875,
+        -1.58
+      ],
+      "active_voxels": 82154,
+      "maximum_absolute_error": 0.0,
+      "pass": true
+    },
+    {
+      "name": "density",
+      "shape": [
+        80,
+        128,
+        80
+      ],
+      "voxel_size": [
+        0.04,
+        0.0375,
+        0.04
+      ],
+      "origin_cell_center": [
+        -1.58,
+        0.01875,
+        -1.58
+      ],
+      "active_voxels": 78845,
+      "maximum_absolute_error": 0.0,
+      "pass": true
+    },
+    {
+      "name": "fuel",
+      "shape": [
+        80,
+        128,
+        80
+      ],
+      "voxel_size": [
+        0.04,
+        0.0375,
+        0.04
+      ],
+      "origin_cell_center": [
+        -1.58,
+        0.01875,
+        -1.58
+      ],
+      "active_voxels": 73434,
+      "maximum_absolute_error": 0.0,
+      "pass": true
+    },
+    {
+      "name": "oxygen",
+      "shape": [
+        80,
+        128,
+        80
+      ],
+      "voxel_size": [
+        0.04,
+        0.0375,
+        0.04
+      ],
+      "origin_cell_center": [
+        -1.58,
+        0.01875,
+        -1.58
+      ],
+      "active_voxels": 587319,
+      "maximum_absolute_error": 0.0,
+      "pass": true
+    },
+    {
+      "name": "reaction",
+      "shape": [
+        80,
+        128,
+        80
+      ],
+      "voxel_size": [
+        0.04,
+        0.0375,
+        0.04
+      ],
+      "origin_cell_center": [
+        -1.58,
+        0.01875,
+        -1.58
+      ],
+      "active_voxels": 29208,
+      "maximum_absolute_error": 0.0,
+      "pass": true
+    },
+    {
+      "name": "velocity",
+      "shape": [
+        80,
+        128,
+        80,
+        3
+      ],
+      "voxel_size": [
+        0.04,
+        0.0375,
+        0.04
+      ],
+      "origin_cell_center": [
+        -1.58,
+        0.01875,
+        -1.58
+      ],
+      "active_voxels": 819200,
+      "maximum_absolute_error": 0.0,
+      "pass": true
+    }
+  ],
+  "temperature_is_normalized": true,
+  "retains_particles": false,
+  "retains_browser_render_settings": false,
+  "simulation_rerun": false,
+  "atlas_axis_checks_passed": true,
+  "simulation_grid": [
+    40,
+    64,
+    40
+  ],
+  "refined_grid": [
+    80,
+    128,
+    80
+  ],
+  "simulation_time": 1.499999999999999,
+  "actual_simulated_input": true
+}

@@ -59,3 +59,11 @@ No sparse simulation domain, production node graph, animated FBX/Alembic collisi
 ## License
 
 Project distribution: **GPL-2.0-only**, preserving this repository's license. The independently licensed Three.js distribution and its MIT notice remain under `vendor/THREE-LICENSE.txt`. Earlier MIT-origin PYRE source is incorporated into this GPL-2.0 distribution; its provenance is retained in source history.
+
+## New 0.5 recordings
+
+![New recorded hero flame](docs/media/next/clips/hero/01_hearth.gif)
+
+[New recorded scene gallery](docs/media/next/index.html) · [33-second cinematic cut](docs/media/next/IGNIA_Next_Cinematic_1080p.mp4) · [31-preset catalogue](docs/media/next/IGNIA_Next_Preset_Catalogue_1080p.mp4) · [Full refined verification](docs/media/next/IGNIA_Next_Verification_1080p.mp4) · [Actual Three.js recording](docs/media/next/IGNIA_Next_ThreeJS_1080p.mp4).
+
+[Measured release report](docs/media/next/report.html) · [Raw readbacks, frame hashes and source IDs](docs/media/next/capture-report.json) · [EXR, OpenVDB and checkpoint guide](EXPORTS.md). All capture is offline. Numerical tests do not establish physical calibration or EmberGen parity.

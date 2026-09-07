@@ -1,0 +1,126 @@
+{
+  "version": "IGNIA 0.5",
+  "backend": "llvmpipe (LLVM 20.1.2, 256 bits)",
+  "pressure_grid": [
+    32,
+    48,
+    32
+  ],
+  "scalar_grid": [
+    64,
+    96,
+    64
+  ],
+  "meaning": "software-rendered numerical regressions; not measured combustion or GPU throughput",
+  "dt": 0.020833333333333332,
+  "tests": {
+    "zero_source": {
+      "pass": true,
+      "temperature": 0.0,
+      "reaction": 0.0,
+      "speed": 0.0
+    },
+    "cold_fuel_requires_ignition": {
+      "pass": true,
+      "temperature": 0.0,
+      "reaction": 0.0,
+      "fuel": 0.659520149230957
+    },
+    "pilot_causes_reaction": {
+      "pass": true,
+      "reaction": 1.188286542892456,
+      "temperature": 1.474609375
+    },
+    "pressure_inclusive_refined_replay": {
+      "pass": true,
+      "max_refined_abs_error": 0.0,
+      "max_macro_abs_error": 0.0,
+      "expected_hash": "e4b2c1f7a6b35215f2ad09d9e617602885900a174d10f9f03ca82d42440fe33d",
+      "actual_hash": "e4b2c1f7a6b35215f2ad09d9e617602885900a174d10f9f03ca82d42440fe33d"
+    },
+    "cold_reset_determinism": {
+      "pass": true,
+      "hashes": [
+        "c7d27c296e094edd84217b8b96ac500cb3ef88c7428948be94f6b5e29cd88bd4",
+        "c7d27c296e094edd84217b8b96ac500cb3ef88c7428948be94f6b5e29cd88bd4"
+      ]
+    },
+    "vortex_sign_reversal": {
+      "pass": true,
+      "circulation_proxy": [
+        0.7284856312298614,
+        -0.7303093945126552
+      ]
+    },
+    "fuel_models_change_species": {
+      "pass": true,
+      "measured": {
+        "alcohol": {
+          "soot": 0.00527123874053359,
+          "reaction": 0.12106633931398392
+        },
+        "oil": {
+          "soot": 0.296006977558136,
+          "reaction": 0.18864059448242188
+        }
+      }
+    },
+    "solid_collider": {
+      "pass": true,
+      "solid_cell_count": 4196,
+      "fine_species": 0.0,
+      "fine_velocity": 0.0,
+      "macro_species": 0.0,
+      "macro_velocity": 0.0,
+      "finite": true
+    },
+    "collider_pressure_projection": {
+      "pass": true,
+      "pre_rms": 0.3120479881763458,
+      "post_rms": 0.000718584400601685,
+      "ratio": 0.002302800940333561,
+      "declared_acceptance_ratio": 0.2
+    },
+    "solid_baffle": {
+      "pass": true,
+      "solid_cell_count": 2016,
+      "fine_species": 0.0,
+      "fine_velocity": 0.0,
+      "macro_species": 0.0,
+      "macro_velocity": 0.0,
+      "finite": true
+    },
+    "solid_stove_pan": {
+      "pass": true,
+      "solid_cell_count": 384,
+      "fine_species": 0.0,
+      "fine_velocity": 0.0,
+      "macro_species": 0.0,
+      "macro_velocity": 0.0,
+      "finite": true
+    },
+    "smoke_without_reaction": {
+      "pass": true,
+      "soot": 0.19488993287086487,
+      "reaction": 0.0
+    },
+    "finite_pulse_cutoff": {
+      "pass": true,
+      "active_substeps": 12,
+      "configured_seconds": 0.25,
+      "last_source_input": 0.0,
+      "residual_heat": 2.1754491329193115
+    },
+    "palette_changes_no_fields": {
+      "pass": true,
+      "before": "c3ab1f8190a33f163a0438fec9f94144314a866f898def04807b6eaa6bd3f655",
+      "after": "c3ab1f8190a33f163a0438fec9f94144314a866f898def04807b6eaa6bd3f655"
+    }
+  },
+  "base_shader_sha256": "66ab7bb21b2c97378a930b361b57a57a17bf165fd6ef215ca71ad1e9c99d849b",
+  "detail_shader_sha256": "07d19fd7fccb80e242e5fc3c1f915d84d3fbcb7ac458c0a999968db3937934ac",
+  "elapsed_wall_seconds": 175.80222521399998,
+  "all_passed": true,
+  "test_count": 14,
+  "complete": true
+}

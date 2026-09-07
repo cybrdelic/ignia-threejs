@@ -1,0 +1,19 @@
+{
+  "pass": true,
+  "independent_decoder": "Official OpenEXR Python module",
+  "decoder_version": "3.4.15",
+  "maximum_absolute_error": 0.0,
+  "shape": [
+    4,
+    8,
+    4
+  ],
+  "negative_values_preserved": true,
+  "hdr_values_preserved": true,
+  "file_sha256": "4044620d2335c9d38fe7f84e09a7a491adb3e9476647816ddb8d2a1d4fc208fa",
+  "opencv_compatibility": {
+    "version": "5.0.0",
+    "decoded": false
+  },
+  "source_commit": "e606ae8b925c9ceb81db5688802363f0f0a84a3a"
+}

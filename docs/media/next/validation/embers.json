@@ -1,0 +1,9 @@
+{
+  "active_particles": 295,
+  "particle_budget": 2048,
+  "finite": true,
+  "exact_fluid_and_particle_replay": true,
+  "state_hash": "abf066aad4b95b501d88332f49852692904c0e48e2fc4123515b53c95a6933d0",
+  "gl_error": 0,
+  "pass": true
+}
