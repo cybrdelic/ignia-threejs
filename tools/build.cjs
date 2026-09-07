@@ -20,7 +20,7 @@ const groups={
  'src/controls.js':[read('src/controls.js')],
  'src/studio.js':[read('src/studio.js')],
  'src/detail.js':[read('src/detail-shaders.js'),read('src/detail-core.js')],
- 'src/engine.js':['src/engine-gpu.js','src/engine-flow-core.js','src/engine-shaders-material.js','src/engine-shaders-render.js','src/engine-renderer.js','src/engine-main.js'].map(read)
+ 'src/engine.js':['src/engine-gpu.js','src/engine-flow-core.js','src/ci-smoke.js','src/engine-shaders-material.js','src/engine-shaders-render.js','src/engine-renderer.js','src/engine-main.js'].map(read)
 };
 for(const [tag,sources] of Object.entries(groups)){
  html=html.replace(`<script src="${tag}"></script>`,`<script>\n${sources.join('\n')}\n<\\/script>`);

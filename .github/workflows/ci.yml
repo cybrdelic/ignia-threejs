@@ -40,9 +40,7 @@ jobs:
           const source = Buffer.from(encoded, 'base64');
           if (source.length !== 34586) throw new Error(`decoded length ${source.length}`);
           const sha = crypto.createHash('sha256').update(source).digest('hex');
-          if (sha !== 'e3ba0f60ed616a96945ad97597bf78c7e3eed2bebbe114835355acd744311dee') {
-            throw new Error(`preset source hash mismatch: ${sha}`);
-          }
+          if (sha !== 'e3ba0f60ed616a96945ad97597bf78c7e3eed2bebbe114835355acd744311dee') throw new Error(`preset source hash mismatch: ${sha}`);
           new Function(source.toString('utf8'));
           console.log(`verified recovered preset source: ${sha}`);
           NODE
@@ -59,31 +57,43 @@ jobs:
           npm install --no-save playwright
           npx playwright install --with-deps chromium
 
-      - name: Browser WebGL2 smoke test
+      - name: Browser WebGL2 solver smoke test
         shell: bash
         run: |
           python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/ignia-http.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          ready=0
           for i in {1..30}; do
-            curl -fsS http://127.0.0.1:8000/index.html >/dev/null && break
+            if curl -fsS http://127.0.0.1:8000/index.html >/dev/null; then ready=1; break; fi
             sleep 1
           done
+          test "$ready" = 1 || { cat /tmp/ignia-http.log; exit 1; }
           node <<'NODE'
           const { chromium } = require('playwright');
           (async () => {
-            const browser = await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--ignore-gpu-blocklist','--enable-webgl','--use-angle=swiftshader']});
-            const page = await browser.newPage({viewport:{width:640,height:360}});
-            const errors = [];
+            const browser = await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--ignore-gpu-blocklist','--enable-webgl','--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']});
+            const page = await browser.newPage({viewport:{width:480,height:270}});
+            const errors = [], consoleLines = [];
             page.on('pageerror', e => errors.push(String(e)));
-            await page.goto('http://127.0.0.1:8000/index.html?capture=1&offline=1&tier=draft', {waitUntil:'load', timeout:60000});
-            await page.waitForFunction(() => window.PYRE?.ready || window.PYRE_ERROR, null, {timeout:60000});
+            page.on('console', m => consoleLines.push(`[${m.type()}] ${m.text()}`));
+            await page.goto('http://127.0.0.1:8000/index.html?capture=1&offline=1&tier=ci&ci=1', {waitUntil:'load', timeout:30000});
+            try {
+              await page.waitForFunction(() => window.PYRE?.ready || window.PYRE_ERROR, null, {timeout:30000});
+            } catch (e) {
+              const diag = await page.evaluate(() => ({status:document.querySelector('#status')?.textContent,bodyClass:document.body.className,pyre:!!window.PYRE,error:window.PYRE_ERROR||null,presets:Object.keys(window.PYRE3_PRESETS||{}).length}));
+              console.error(JSON.stringify({diag,errors,consoleLines},null,2));
+              throw e;
+            }
             const state = await page.evaluate(() => ({ready:!!window.PYRE?.ready,error:window.PYRE_ERROR||null,info:window.PYRE?.info?.(),presets:Object.keys(window.PYRE3_PRESETS||{}).length}));
             console.log(JSON.stringify(state,null,2));
-            if (!state.ready || state.error || state.presets !== 31 || errors.length) throw new Error(JSON.stringify({state,errors}));
-            await page.evaluate(() => { window.PYRE.setPreset('stove4'); window.PYRE.advance(2,1/120); window.PYRE.draw('orbit',0); });
-            await page.evaluate(() => { window.PYRE.setPreset('tornado'); window.PYRE.advance(2,1/120); window.PYRE.draw('orbit',0); });
-            await page.evaluate(() => { window.PYRE.setPreset('explosion'); window.PYRE.advance(2,1/120); window.PYRE.draw('orbit',0); });
+            if (!state.ready || state.error || state.presets !== 31 || errors.length) throw new Error(JSON.stringify({state,errors,consoleLines}));
+            for (const preset of ['stove4','tornado','explosion']) {
+              await page.evaluate(p => { window.PYRE.setPreset(p); window.PYRE.advance(2,1/120); window.PYRE.draw('orbit',0); }, preset);
+            }
+            const finalState = await page.evaluate(() => ({preset:window.PYRE.currentPreset?.(),tick:window.PYRE.flow.tick,time:window.PYRE.flow.time,glError:window.PYRE.gpu.gl.getError()}));
+            console.log(JSON.stringify(finalState,null,2));
+            if (finalState.preset !== 'explosion' || finalState.tick < 2 || finalState.glError !== 0) throw new Error(JSON.stringify(finalState));
             await browser.close();
           })().catch(e => { console.error(e); process.exit(1); });
           NODE
