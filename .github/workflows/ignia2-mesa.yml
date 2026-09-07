@@ -14,7 +14,7 @@ jobs:
       - name: Install reference driver and export libraries
         run: |
           apt-get update -qq
-          apt-get install -y -qq mesa-vulkan-drivers libvulkan1 vulkan-tools libopenvdb-dev libtbb-dev g++ python3
+          apt-get install -y -qq mesa-vulkan-drivers libvulkan1 vulkan-tools libopenvdb-dev libtbb-dev libboost-iostreams-dev g++ python3
           mkdir -p /tmp/ignia-mesa/lib /tmp/ignia-mesa/include /tmp/ignia-mesa/icd
           cp -L /usr/lib/x86_64-linux-gnu/libvulkan_lvp.so /usr/lib/x86_64-linux-gnu/libvulkan.so.1 /usr/lib/x86_64-linux-gnu/libopenvdb.so* /tmp/ignia-mesa/lib/
           python3 - <<'PY'
