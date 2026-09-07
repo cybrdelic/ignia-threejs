@@ -6,6 +6,8 @@ on:
     paths:
       - '.github/workflows/render-readme-gifs.yml'
       - 'tools/render-readme-gifs.mjs'
+      - 'src/engine.js'
+      - 'src/presets.js'
   workflow_dispatch:
 
 permissions:
