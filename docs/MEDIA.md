@@ -1,30 +1,32 @@
 # IGNIA media
 
-The README previews are compressed extracts from the native 1080p IGNIA/PYRE IV captures. They are intended as quick visual proof in GitHub; the source masters remain the 1080p H.264 captures produced by the renderer.
+The README uses stable showcase aliases under `docs/media/showcase/`. Those files point to the same Git blobs as selected entries in the verified baseline media archive; they are not separately generated images.
 
-## Preview source windows
+## README showcase
 
-| Preview | Source master | Window |
+| Alias | Verified source clip | Preview encoding |
 | --- | --- | --- |
-| Overview | `PYRE_IV_Preset_Catalogue_1080p_Clean.mp4` | ~0.7s–3.9s |
-| Combustors | `PYRE_IV_Combustors_1080p.mp4` | ~0.4s–3.9s |
-| Vortices | `PYRE_IV_Flows_Vortices_1080p.mp4` | ~0.4s–3.9s |
-| Transients | `PYRE_IV_Transient_Effects_1080p.mp4` | ~0.0s–3.2s |
+| `showcase/overview.gif` | `baseline/catalogue/01_hearth.mp4` | 480 px wide, 10 fps GIF |
+| `showcase/combustors.gif` | `baseline/catalogue/05_stove4.mp4` | 480 px wide, 10 fps GIF |
+| `showcase/vortices.gif` | `baseline/catalogue/20_tornado.mp4` | 480 px wide, 10 fps GIF |
+| `showcase/transients.gif` | `baseline/catalogue/22_explosion.mp4` | 480 px wide, 10 fps GIF |
 
-## High-quality GIF export
+All source masters are native 1920×1080 H.264 recordings at 24 fps. The complete archive contains 43 original MP4s and 43 full-motion GIF previews.
 
-Use palette generation + paletteuse rather than direct GIF encoding. Example:
+- [Complete media tree](media/baseline/)
+- [Scene gallery](media/baseline/index.html)
+- [Hashes, resolution, duration and decode checks](media/baseline/publication-manifest.json)
+
+The publication manifest records the conversion used for the baseline GIFs: 480 px wide, 10 fps, 128-color GIFs from the complete moving clips. No generated-image input was used.
+
+## Re-encoding a local master
+
+For a custom README preview, use a palette pass rather than direct GIF encoding:
 
 ```bash
-ffmpeg -y -ss 0.7 -t 7 -i PYRE_IV_Preset_Catalogue_1080p_Clean.mp4 \
-  -vf "fps=12,scale=640:-1:flags=lanczos,palettegen=stats_mode=diff" palette.png
-ffmpeg -y -ss 0.7 -t 7 -i PYRE_IV_Preset_Catalogue_1080p_Clean.mp4 -i palette.png \
-  -lavfi "fps=12,scale=640:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=sierra2_4a" \
-  -loop 0 docs/media/ignia-overview.gif
+ffmpeg -y -i input.mp4 \
+  -filter_complex "fps=10,scale=480:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=3" \
+  -loop 0 output.gif
 ```
 
-Recommended showcase target: 640 px wide, 10–12 fps, 6–8 seconds, palette optimized. If a preview becomes too large, reduce fps first, then width, then duration.
-
-## Full-quality presentation
-
-GitHub README GIFs are not the archival deliverables. For release presentation, publish the native 1080p MP4s as GitHub Release assets or on a static gallery page and keep the README GIFs as lightweight previews.
+For archival or presentation quality, use the original 1080p MP4s instead of GIF.

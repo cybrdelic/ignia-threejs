@@ -1,0 +1,89 @@
+name: Verify IGNIA master
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'src/**'
+      - 'index.html'
+      - 'package.json'
+      - 'tools/**'
+      - '.github/workflows/ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Reconstruct and verify recovered preset source
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const crypto = require('crypto');
+          let encoded = '';
+          for (let i = 0; i < 6; i++) {
+            let part = fs.readFileSync(`src/presets-full.${i}.b64`, 'utf8').trim();
+            if (i === 4) part = part.slice(0, 9000);
+            encoded += part;
+          }
+          if (encoded.length !== 46116) throw new Error(`base64 length ${encoded.length}`);
+          const source = Buffer.from(encoded, 'base64');
+          if (source.length !== 34586) throw new Error(`decoded length ${source.length}`);
+          const sha = crypto.createHash('sha256').update(source).digest('hex');
+          if (sha !== 'e3ba0f60ed616a96945ad97597bf78c7e3eed2bebbe114835355acd744311dee') {
+            throw new Error(`preset source hash mismatch: ${sha}`);
+          }
+          new Function(source.toString('utf8'));
+          console.log(`verified recovered preset source: ${sha}`);
+          NODE
+
+      - name: Install and build
+        run: |
+          npm install
+          npm run check
+          npm run build
+          test -s IGNIA_Studio.html
+
+      - name: Install Chromium smoke-test tooling
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: Browser WebGL2 smoke test
+        shell: bash
+        run: |
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/ignia-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:8000/index.html >/dev/null && break
+            sleep 1
+          done
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          (async () => {
+            const browser = await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--ignore-gpu-blocklist','--enable-webgl','--use-angle=swiftshader']});
+            const page = await browser.newPage({viewport:{width:640,height:360}});
+            const errors = [];
+            page.on('pageerror', e => errors.push(String(e)));
+            await page.goto('http://127.0.0.1:8000/index.html?capture=1&offline=1&tier=draft', {waitUntil:'load', timeout:60000});
+            await page.waitForFunction(() => window.PYRE?.ready || window.PYRE_ERROR, null, {timeout:60000});
+            const state = await page.evaluate(() => ({ready:!!window.PYRE?.ready,error:window.PYRE_ERROR||null,info:window.PYRE?.info?.(),presets:Object.keys(window.PYRE3_PRESETS||{}).length}));
+            console.log(JSON.stringify(state,null,2));
+            if (!state.ready || state.error || state.presets !== 31 || errors.length) throw new Error(JSON.stringify({state,errors}));
+            await page.evaluate(() => { window.PYRE.setPreset('stove4'); window.PYRE.advance(2,1/120); window.PYRE.draw('orbit',0); });
+            await page.evaluate(() => { window.PYRE.setPreset('tornado'); window.PYRE.advance(2,1/120); window.PYRE.draw('orbit',0); });
+            await page.evaluate(() => { window.PYRE.setPreset('explosion'); window.PYRE.advance(2,1/120); window.PYRE.draw('orbit',0); });
+            await browser.close();
+          })().catch(e => { console.error(e); process.exit(1); });
+          NODE
