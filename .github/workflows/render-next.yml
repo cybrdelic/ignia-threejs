@@ -1,0 +1,182 @@
+name: IGNIA 0.5 full native-HD recordings
+on:
+  push:
+    branches: [ignia-next-20260906]
+    paths: ['.github/workflows/render-next.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: plan
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          lib=json.loads(Path('presets.json').read_text())
+          hi={'hearth','candle','candles','stove','stove4','stove_pan','torch','hydrogen','tornado','mushroom'}
+          rows=[{'mode':'verification','key':k,'grid':64,'cinema':False} for k in ['ignition','wind','collider','baffle','puff','smoke','frozen','fields','palettes','snapshot','refinement']]
+          rows+=[{'mode':'catalogue','key':'hearth','grid':64,'cinema':True}]
+          rows+=[{'mode':'catalogue','key':k,'grid':64 if k in hi else 48,'cinema':False} for k in lib['presets']]
+          assert len(rows)==43
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('matrix='+json.dumps({'include':rows})+'\n')
+          PY
+  render:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      EGL_PLATFORM: surfaceless
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      LP_NUM_THREADS: '2'
+      IGNIA_SOURCE_COMMIT: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install bounded software-rendering dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg libegl1 libgl1 libgl1-mesa-dri fonts-dejavu-core
+          python -m pip install --quiet numpy pillow
+          mkdir -p validation renders
+          npm run check
+          npm run export-shaders
+          npm run export-detail
+          npm run export-diagnostics
+      - name: Simulate and record the requested scene
+        env:
+          MODE: ${{ matrix.mode }}
+          SCENE: ${{ matrix.key }}
+          GRID: ${{ matrix.grid }}
+          CINEMA: ${{ matrix.cinema }}
+        run: |
+          extra=()
+          if [ "$CINEMA" = true ]; then extra=(--cinema --duration 6 --ray-steps 320); fi
+          python tools/capture_delivery.py --mode "$MODE" --only "$SCENE" --grid "$GRID" --refinement 3 --destination delivery/scene "${extra[@]}" 2>&1 | tee capture.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: next-render-${{ matrix.mode }}-${{ matrix.key }}-${{ matrix.cinema }}
+          path: |
+            delivery/scene/
+            capture.log
+          retention-days: 3
+  numerics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EGL_PLATFORM: surfaceless
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      LP_NUM_THREADS: '2'
+      OPENCV_IO_ENABLE_OPENEXR: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libegl1 libgl1 libgl1-mesa-dri fonts-dejavu-core
+          python -m pip install --quiet numpy pillow opencv-python-headless
+          mkdir -p validation renders
+          npm run export-shaders
+          npm run export-detail
+          npm run export-diagnostics
+          python tools/test_lab.py
+          python tools/test_optical_segment.py
+          python tools/test_embers.py
+          node tools/test_exr.cjs
+          python - <<'PY'
+          import cv2,numpy as np,json
+          from pathlib import Path
+          p=Path('validation');observed=cv2.imread(str(p/'exr_fixture.exr'),cv2.IMREAD_UNCHANGED)
+          expected=np.fromfile(p/'exr_fixture.rgba32f',np.float32).reshape(4,8,4)[...,[2,1,0,3]]
+          error=float(np.abs(observed-expected).max());assert error==0
+          (p/'exr_roundtrip.json').write_text(json.dumps({'pass':True,'independent_decoder':'OpenCV/OpenEXR','maximum_absolute_error':error,'negative_values_preserved':bool(observed.min()<0),'hdr_values_preserved':bool(observed.max()>1)}))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: next-numerical-checks
+          path: validation/
+          retention-days: 3
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      EGL_PLATFORM: surfaceless
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      LP_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg libegl1 libgl1 libgl1-mesa-dri fonts-dejavu-core
+          python -m pip install --quiet -r requirements.txt
+          python -m playwright install --with-deps chromium
+          echo "IGNIA_CHROMIUM=$(python -c 'from playwright.sync_api import sync_playwright;p=sync_playwright().start();print(p.chromium.executable_path);p.stop()')" >> "$GITHUB_ENV"
+          mkdir -p validation
+      - run: python tools/browser_delivery.py 2>&1 | tee browser-capture.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: next-actual-threejs
+          path: |
+            delivery/browser/
+            validation/browser_delivery.json
+            browser-capture.log
+          retention-days: 3
+  collect:
+    needs: [render,numerics,browser]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: next-*
+          path: /tmp/ignia-next-results
+      - name: Preserve every completed recording and exact status
+        env:
+          RENDER: ${{ needs.render.result }}
+          NUMERICS: ${{ needs.numerics.result }}
+          BROWSER: ${{ needs.browser.result }}
+        run: |
+          git archive --format=tar.gz HEAD src tools vendor README.md UPGRADE.md LICENSE index.html package.json package-lock.json requirements.txt presets.json SOURCE_SHA256.json > /tmp/ignia-next-results/source.tar.gz
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          root=Path('/tmp/ignia-next-results')
+          rows=[]
+          for p in root.rglob('manifest.json'):
+              m=json.loads(p.read_text());rows.append({'path':str(p.relative_to(root)),'status':m.get('status'),'scenes':[x['id'] for x in m.get('scenes',[])]})
+          (root/'RUN_STATUS.json').write_text(json.dumps({'source_commit':os.environ['GITHUB_SHA'],'render':os.environ['RENDER'],'numerics':os.environ['NUMERICS'],'browser':os.environ['BROWSER'],'manifests':rows},indent=2))
+          print('Captured scene manifests:',len(rows))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IGNIA_NEXT_All_Rendered
+          path: /tmp/ignia-next-results/
+          retention-days: 3
+          compression-level: 0
