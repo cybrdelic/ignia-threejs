@@ -1,0 +1,121 @@
+name: Publish verified IGNIA 0.5 recordings
+on:
+  push:
+    branches: [ignia-next-20260906]
+    paths: ['.github/workflows/publish-next.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    env:
+      EGL_PLATFORM: surfaceless
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      LP_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ignia-next-20260906
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Wait for the exact immutable capture run to finish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          deadline=$((SECONDS+2700))
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            status=$(gh api repos/cybrdelic/ignia-threejs/actions/runs/34069252907 --jq .status)
+            if [ "$status" = completed ]; then exit 0; fi
+            echo "Capture run is $status; waiting for finished artifacts."
+            sleep 30
+          done
+          echo 'Capture deadline reached without a completed run.' >&2
+          exit 1
+      - uses: actions/download-artifact@v4
+        with:
+          name: IGNIA_NEXT_All_Rendered
+          run-id: 34069252907
+          github-token: ${{ github.token }}
+          path: /tmp/ignia-inputs/rendered
+      - uses: actions/download-artifact@v4
+        with:
+          name: official-exr-validation
+          run-id: 34069578543
+          github-token: ${{ github.token }}
+          path: /tmp/ignia-inputs/exr
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-vdb-validation
+          run-id: 34070680791
+          github-token: ${{ github.token }}
+          path: /tmp/ignia-inputs/vdb
+      - name: Install capture-validation tooling
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg libegl1 libgl1 libgl1-mesa-dri fonts-dejavu-core
+          python -m pip install --quiet -r requirements.txt
+          python -m pip install --quiet OpenEXR
+          python -m playwright install --with-deps chromium
+          echo "IGNIA_CHROMIUM=$(python -c 'from playwright.sync_api import sync_playwright;p=sync_playwright().start();print(p.chromium.executable_path);p.stop()')" >> "$GITHUB_ENV"
+          mkdir -p validation renders
+          npm install --ignore-scripts
+          npm run check
+          npm run export-shaders
+          npm run export-detail
+          npm run export-diagnostics
+          python -m compileall -q tools
+      - name: Recheck the exact browser checkpoint and EXR values
+        run: |
+          python tools/test_browser_state.py
+          python tools/test_exr_roundtrip.py
+          mkdir -p /tmp/ignia-inputs/final-browser
+          cp validation/browser_state_roundtrip.json /tmp/ignia-inputs/final-browser/
+      - name: Assemble new clips, verify motion, and generate genuine GIF previews
+        run: python tools/build_reels.py /tmp/ignia-inputs docs/media/next
+      - name: Retire completed transfer-only workflows
+        run: |
+          rm -f .github/workflows/import-next-source.yml .github/workflows/publish-baseline-media.yml .github/workflows/verified-source.yml
+      - name: Build an auditable final source and media package
+        run: |
+          python tools/finalize_release.py /tmp/ignia-inputs docs/media/next /tmp/ignia-delivery
+          python - <<'PY'
+          import json,hashlib,zipfile
+          from pathlib import Path
+          p=Path('/tmp/ignia-delivery/IGNIA_Next_Source.zip')
+          with zipfile.ZipFile(p) as z:
+              for name,digest in json.loads(z.read('SOURCE_SHA256.json')).items():
+                  assert hashlib.sha256(z.read(name)).hexdigest()==digest,name
+          report=json.loads(Path('docs/media/next/capture-report.json').read_text())
+          assert report['new_scene_count']==44 and all(x['decode_check']=='passed' for x in report['movies'])
+          print('Source manifest and all movie decode checks passed.')
+          PY
+      - name: Commit the new recordings and complete source to the upgrade branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A .github/workflows docs/media/next README.md SOURCE_SHA256.json package-lock.json tools/shaders.json tools/detail-shaders.json tools/diagnostics-shaders.json
+          git commit -m 'Publish 44 new native-HD captures, tested IGNIA 0.5 source and native export proofs'
+          git push origin HEAD:ignia-next-20260906
+          git rev-parse HEAD > /tmp/ignia-delivery/GITHUB_COMMIT.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: IGNIA_0_5_Verified_Delivery
+          path: /tmp/ignia-delivery/
+          retention-days: 7
+          compression-level: 0
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ignia-publication-diagnostics
+          path: |
+            validation/browser_state_roundtrip.json
+            docs/media/next/capture-report.json
+          retention-days: 3
