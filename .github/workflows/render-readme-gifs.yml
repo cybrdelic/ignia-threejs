@@ -1,0 +1,70 @@
+name: Render IGNIA README GIFs
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/render-readme-gifs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install browser tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Start IGNIA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/ignia-http.log 2>&1 &
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:8000/index.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/ignia-http.log
+          exit 1
+
+      - name: Render actual IGNIA GIFs
+        run: node tools/render-readme-gifs.mjs
+
+      - name: Verify animations
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in docs/media/ignia-overview-v10.gif docs/media/ignia-combustors-v10.gif docs/media/ignia-vortices-v10.gif docs/media/ignia-transients-v10.gif; do
+            test -s "$f"
+            test "$(stat -c %s "$f")" -gt 50000
+            ffprobe -v error -select_streams v:0 -show_entries stream=width,height,nb_frames -of default=nw=1 "$f"
+          done
+
+      - name: Publish media and clean one-shot tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/media/ignia-overview-v10.gif docs/media/ignia-combustors-v10.gif docs/media/ignia-vortices-v10.gif docs/media/ignia-transients-v10.gif
+          git rm .github/workflows/render-readme-gifs.yml tools/render-readme-gifs.mjs
+          git commit -m 'Add high-quality rendered IGNIA README media'
+          git push origin master
