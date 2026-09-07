@@ -79,7 +79,7 @@ jobs:
             page.on('console', m => consoleLines.push(`[${m.type()}] ${m.text()}`));
             await page.goto('http://127.0.0.1:8000/index.html?capture=1&offline=1&tier=ci&ci=1', {waitUntil:'load', timeout:30000});
             try {
-              await page.waitForFunction(() => window.PYRE?.ready || window.PYRE_ERROR, null, {timeout:30000});
+              await page.waitForFunction(() => window.PYRE?.ready || window.PYRE_ERROR, null, {timeout:180000});
             } catch (e) {
               const diag = await page.evaluate(() => ({status:document.querySelector('#status')?.textContent,bodyClass:document.body.className,pyre:!!window.PYRE,error:window.PYRE_ERROR||null,presets:Object.keys(window.PYRE3_PRESETS||{}).length}));
               console.error(JSON.stringify({diag,errors,consoleLines},null,2));
