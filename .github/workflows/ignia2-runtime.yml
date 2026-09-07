@@ -1,0 +1,46 @@
+name: IGNIA II runtime tools
+on:
+  push:
+    branches: [ignia2-webgpu-20260907]
+    paths: ['.github/workflows/ignia2-runtime.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tools:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned WebGPU runtime and Three.js
+        run: |
+          mkdir -p /tmp/ignia2-tools/npm
+          cd /tmp/ignia2-tools/npm
+          npm init -y
+          npm install --save-exact webgpu@0.6.0 three@0.180.0
+          node -e "import('webgpu').then(m=>console.log('Dawn exports:',Object.keys(m)))"
+      - name: Acquire OpenVDB development libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libopenvdb-dev libtbb-dev
+          mkdir -p /tmp/ignia2-tools/native/lib /tmp/ignia2-tools/native/include
+          cp -a /usr/include/openvdb /usr/include/oneapi /usr/include/tbb /tmp/ignia2-tools/native/include/
+          cp -a /usr/include/Imath /tmp/ignia2-tools/native/include/ || true
+          cp -L /usr/lib/x86_64-linux-gnu/libopenvdb.so* /usr/lib/x86_64-linux-gnu/libtbb.so* /usr/lib/x86_64-linux-gnu/libtbbmalloc.so* /usr/lib/x86_64-linux-gnu/libImath*.so* /usr/lib/x86_64-linux-gnu/libboost_iostreams.so* /tmp/ignia2-tools/native/lib/
+          dpkg-query -W libopenvdb-dev libtbb-dev > /tmp/ignia2-tools/native/VERSIONS.txt
+      - name: Pack the exact tracked baseline and tool versions
+        run: |
+          git archive --format=tar.gz HEAD > /tmp/ignia2-tools/baseline-source.tar.gz
+          git rev-parse HEAD > /tmp/ignia2-tools/BASE_COMMIT.txt
+          cd /tmp/ignia2-tools
+          find npm/node_modules -type f -name '*win32*' -delete
+          tar -czf /tmp/ignia2-runtime.tar.gz .
+          sha256sum /tmp/ignia2-runtime.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ignia2-runtime-tools
+          path: /tmp/ignia2-runtime.tar.gz
+          retention-days: 7
